@@ -3,19 +3,10 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import seaborn as sns
-import numpy as np
+import plotly.express as px
 
-def foo(values):
-    try:
-        return round(100 * values / sum(values), 3)
-    except ZeroDivisionError:
-        return 0
-
-def EDA():
-    print('Loading the data and Analysis its structure')
-    # Load the file with relative path
-    df = pd.read_excel( 'data/CUSTOMER_FEEDBACK.xlsx',sheet_name= 'Sheet')
-
+def EDA(df):
+    # Explorating its dtypes, shapes and missing value by each column
     features_dtypes = df.dtypes
     rows, columns = df.shape
 
@@ -46,20 +37,24 @@ def EDA():
 
     return df
 
-def visulaisation(dataframe):
-    print('Data Exploration')
-    dataframe_updated = data_process(dataframe, datetimecol='SURVEY_TIME')
-    # Distribution of scores
-    # distribution_plt(dataframe_updated, 'LEVEL_ID', 'Scores', 'scores',' ')
+def visulaisation(df):
+    # Chinese world se
+    matplotlib.rcParams['font.sans-serif'] = 'Arial Unicode MS'
+    matplotlib.rcParams['axes.labelsize'] = '15'
 
-    # Pie chart of Trade_Zone
-    #pie_chart(dataframe_updated, 'TRADE_ZONE', 'LEVEL_ID', 'TRADE_ZONE Distribution')
-    # Line chart by survey time (hrs, months)
+    # TRADE_ZONE DISTRIBUTION
+    file_path ='output/visualisation/TRADE ZONE DISTRIBUTION.png'
+    pie_chart(df,'TRADE_ZONE', 'STORE_CODE', 'TRADE ZONE Distribution',file_path)
 
-    print('Visualisation')
-    return dataframe_updated
+    # LEVEL_ID Distribution
+    file_path ='output/visualisation/LEVEL_ID Barchart.png'
+    pie_chart(df,'LEVEL_ID', 'STORE_CODE', 'LEVEL ID Distribution',file_path)
 
-def pie_chart(dataframe, col,target,title):
+    # SURVEY_TIME time frame -- line chart, time, days, months
+    print(df.head(30))
+    return df
+
+def pie_chart(dataframe, col,target,title,file_path):
     plt.figure(figsize=(10,5), dpi = 100)
     labels = dataframe[col].unique()
     colors = sns.color_palette('pastel')[0:len(labels)]
@@ -71,18 +66,12 @@ def pie_chart(dataframe, col,target,title):
     plt.title(title, fontsize = 20)
     plt.axis('off')
     plt.legend()
+    plt.savefig(file_path)
     plt.show()
 
-def distribution_plt(dataframe,column_name,title,xlabel,ylabel):
-    # Distribution of LEVEL_ID
-    sns.distplot(dataframe[column_name], color = 'red')
-    plt.title(title, fontsize = 30)
-    plt.xlabel(xlabel, fontsize = 15)
-    plt.ylabel(ylabel)
-    plt.axvline(np.median(dataframe[column_name]), 0, linestyle='--', linewidth=1.5, color='b')
-    plt.show()
 
-def data_process(dataframe,datetimecol):
+
+def date_process(dataframe,datetimecol):
     # Covert date_time col Into multiple new columns (Year, month, day, hour)
     dataframe[datetimecol] = pd.to_datetime(dataframe[datetimecol])
     dataframe['Year'] = dataframe[datetimecol].dt.year
@@ -91,6 +80,19 @@ def data_process(dataframe,datetimecol):
     dataframe['hour'] = dataframe[datetimecol].dt.hour
 
     return dataframe
+
+def bar_plot(df):
+    # Create bar chart using the .bar() method (in a new code cell)
+    fig = px.bar(
+        df,
+        x="Charge",
+        y="size",
+        # title="Add a title here",
+        labels={"size": "Count"},
+        color="Charge",  # Note that the 'color' parameter takes the name of our column ('Charge') as a string
+    )
+
+    fig.show()
 
 
 def word2vector():
