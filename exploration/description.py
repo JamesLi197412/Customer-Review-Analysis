@@ -50,8 +50,6 @@ def visulaisation(df):
     file_path ='output/visualisation/LEVEL_ID Barchart.png'
     pie_chart(df,'LEVEL_ID', 'STORE_CODE', 'LEVEL ID Distribution',file_path)
 
-    # SURVEY_TIME time frame -- line chart, time, days, months
-    print(df.head(30))
     return df
 
 def pie_chart(dataframe, col,target,title,file_path):
@@ -71,13 +69,15 @@ def pie_chart(dataframe, col,target,title,file_path):
 
 
 
-def date_process(dataframe,datetimecol):
+def data_process(dataframe,datetimecol,wordcol):
     # Covert date_time col Into multiple new columns (Year, month, day, hour)
     dataframe[datetimecol] = pd.to_datetime(dataframe[datetimecol])
     dataframe['Year'] = dataframe[datetimecol].dt.year
     dataframe['month'] = dataframe[datetimecol].dt.month
     dataframe['day'] = dataframe[datetimecol].dt.day
     dataframe['hour'] = dataframe[datetimecol].dt.hour
+
+    dataframe['content_len'] = dataframe[wordcol].str.len()
 
     return dataframe
 
@@ -93,7 +93,3 @@ def bar_plot(df):
     )
 
     fig.show()
-
-
-def word2vector():
-    return None
