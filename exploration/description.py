@@ -50,7 +50,18 @@ def visulaisation(df):
     file_path ='output/visualisation/LEVEL_ID Barchart.png'
     pie_chart(df,'LEVEL_ID', 'STORE_CODE', 'LEVEL ID Distribution',file_path)
 
+    file_path = 'output/visualisation/Review Length Barchart.png'
+    bar_chart(df, file_path)
+
     return df
+
+def bar_chart(df, file_path):
+    review_length_bar = df.groupby(['content_len']).count().reset_index()
+    reviews_len = review_length_bar[['content_len','STORE_CODE']]
+    reviews_len.columns = ['content_len','frequency']
+    fig = px.bar(reviews_len, x="content_len", y="frequency",title="customer review length")
+    fig.write_image(file_path)
+    # fig.show()
 
 def pie_chart(dataframe, col,target,title,file_path):
     plt.figure(figsize=(10,5), dpi = 100)
@@ -81,15 +92,3 @@ def data_process(dataframe,datetimecol,wordcol):
 
     return dataframe
 
-def bar_plot(df):
-    # Create bar chart using the .bar() method (in a new code cell)
-    fig = px.bar(
-        df,
-        x="Charge",
-        y="size",
-        # title="Add a title here",
-        labels={"size": "Count"},
-        color="Charge",  # Note that the 'color' parameter takes the name of our column ('Charge') as a string
-    )
-
-    fig.show()

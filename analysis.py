@@ -1,9 +1,7 @@
 import nltk
 from nltk.stem.wordnet import WordNetLemmatizer
-import string
 
 import pandas as pd
-from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 import re
 import jieba  # Library for Chinese word segmentation
@@ -80,3 +78,6 @@ def remove_duplicates(words_list):
             temp.append(x)
 
     return temp
+
+def TF_IDF():
+    return None

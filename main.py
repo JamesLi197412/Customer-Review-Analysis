@@ -17,11 +17,12 @@ if __name__ == '__main__':
 
     # Column Adjustment
     customer_feedback = data_process(customer_feedback,'SURVEY_TIME','CONTENT_TX')
+    visulaisation(customer_feedback)
 
-    customer_feedback = EDA(customer_feedback)
+    #customer_feedback = EDA(customer_feedback)
 
 
-    review_analysis(customer_feedback, 'CONTENT_TX')
+    #review_analysis(customer_feedback, 'CONTENT_TX')
 
 
 
