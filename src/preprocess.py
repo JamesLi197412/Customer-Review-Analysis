@@ -18,7 +18,7 @@ def data_preprocess(df,col):
     length = df.shape[0]
     data_without_stopwords = []
 
-    # Loop through each reviews
+    # Loop through each review
     for i in range(0, length):
         reviews = df.iloc[i][col] # extract reviews
         #if reviews == None or str.strip(reviews) == '':
@@ -26,7 +26,7 @@ def data_preprocess(df,col):
         doc = jieba.lcut(reviews.strip()) # Split the Chinese words
 
         doc = [lemma.lemmatize(word) for word in doc if not word in set(chinese_stopwords)]
-        # remove characterists
+        # remove special characterists
         special_symbols = ['，','！','。','？','h','+', ' ', '、', '?','…','：',')','⊙','o','⊙','(',
                  '!',':','','...', "'"]
         doc = [value for value in doc if not value in set(special_symbols)]
@@ -34,12 +34,12 @@ def data_preprocess(df,col):
 
         data_without_stopwords.append(doc)
 
-    #
-    word_count(data_without_stopwords)
+    # word_count(data_without_stopwords)
     # I need to think about do I have to filter out the word that occurence less than 5, 10 or ...
     # to-do list:
     # 1. remove the word that occur less than ...
     df['cleaned reviews'] = data_without_stopwords
+    TF_IDF(data_without_stopwords, n=100)
 
     data_without_stopwords = [item for t in data_without_stopwords for item in t]
 
@@ -98,13 +98,14 @@ def TF_IDF(words_list, n =100):
     # Select the first n documents from the data set
     tf_idf = pd.DataFrame(vectors.todense()).iloc[:n]
     tf_idf.columns = vectorizer.get_feature_names()
-    tf_idf.to_csv('test.csv')
+    # tf_idf.to_csv('test.csv')
     tfidf_matrix = tf_idf.T
     tfidf_matrix.columns = ['response' + str(i) for i in range(1, n)]
     tfidf_matrix['count'] = tfidf_matrix.sum(axis=1)
 
     # Top 50 words
     tfidf_matrix = tfidf_matrix.sort_values(by='count', ascending=False)[:50]
+    tfidf_matrix.to_csv('test2.csv')
 
     # Print the first 10 words
     print(tfidf_matrix.drop(columns=['count']).head(10))

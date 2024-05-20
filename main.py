@@ -1,12 +1,15 @@
 from exploration.description import *
 from src.preprocess import *
 from models.LDA import *
+import torch.optim as optim
+
 import warnings
 # Sentiment analysis
 
 def warn(*args, **kwargs):
     pass
 
+'''
 def topic_modeling(num_topics, vocab, num_epochs,X):
     # Prepare your data here, such as tokenizing your Chinese reviews and converting them to tensors
 
@@ -28,6 +31,7 @@ def topic_modeling(num_topics, vocab, num_epochs,X):
     # Once you have trained your model, you can use it to generate topic distributions for new Chinese reviews
 
     # For fine-tuning, you can adjust the optimizer parameters, learning rate, or even the model architecture
+'''
 
 
 if __name__ == '__main__':
@@ -45,6 +49,7 @@ if __name__ == '__main__':
     customer_feedback,words_list = data_preprocess(customer_feedback, 'CONTENT_TX')
 
     # print(customer_feedback.head(5))
+
 
 
 
