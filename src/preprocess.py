@@ -7,11 +7,8 @@ import jieba  # Library for Chinese word segmentation
 from collections import defaultdict
 from multiprocessing import Pool
 
-# nltk.download()
 
 def data_preprocess(df,col):
-    # 1. stop words
-    # 2. TF-IDF
     chinese_stopwords = nltk.corpus.stopwords.words('chinese')
     lemma = WordNetLemmatizer()
 
@@ -21,8 +18,6 @@ def data_preprocess(df,col):
     # Loop through each review
     for i in range(0, length):
         reviews = df.iloc[i][col] # extract reviews
-        #if reviews == None or str.strip(reviews) == '':
-        #    continue
         doc = jieba.lcut(reviews.strip()) # Split the Chinese words
 
         doc = [lemma.lemmatize(word) for word in doc if not word in set(chinese_stopwords)]
@@ -34,16 +29,13 @@ def data_preprocess(df,col):
 
         data_without_stopwords.append(doc)
 
-    # word_count(data_without_stopwords)
-    # I need to think about do I have to filter out the word that occurence less than 5, 10 or ...
-    # to-do list:
-    # 1. remove the word that occur less than ...
+
     df['cleaned reviews'] = data_without_stopwords
-    TF_IDF(data_without_stopwords, n=100)
+    #TF_IDF(data_without_stopwords, n=100)
 
-    data_without_stopwords = [item for t in data_without_stopwords for item in t]
-
-    data_without_stopwords = remove_duplicates(data_without_stopwords)
+    #data_without_stopwords = [item for t in data_without_stopwords for item in t]
+    # print(data_without_stopwords)
+    #data_without_stopwords = remove_duplicates(data_without_stopwords)
 
     return df, data_without_stopwords
 
