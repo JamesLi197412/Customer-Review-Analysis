@@ -1,53 +1,54 @@
 from exploration.description import *
 from src.preprocess import *
 from models.LDA import *
-import torch.optim as optim
 
 import warnings
+import joblib
 
 
 # Reference:
-# 7. https://zhuanlan.zhihu.com/p/86579316
-# 11. https://docs.python.org/3/library/multiprocessing.html
-# 12. https://medium.com/kuzok/news-documents-clustering-using-python-latent-semantic-analysis-b95c7b68861c
-# 13. https://spotintelligence.com/2023/11/07/linear-discriminant-analysis-lda/
-# 14. https://www.machinelearningplus.com/nlp/topic-modeling-python-sklearn-examples/
+# 1. https://zhuanlan.zhihu.com/p/86579316
+# 2. https://www.machinelearningplus.com/nlp/topic-modeling-python-sklearn-examples/
 
 
 def warn(*args, **kwargs):
     pass
 
-'''
-def topic_modeling(num_topics, vocab, num_epochs,X):
-    # Prepare your data here, such as tokenizing your Chinese reviews and converting them to tensors
 
-    # Instantiate and train your LDA model
-    model = LDA(num_topics=num_topics, vocab_size=len(vocab))
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-    for epoch in range(num_epochs):
-        optimizer.zero_grad()
-
-        theta, phi, doc_topic_dist, topic_word_dist = model(X)
-
-        # Calculate loss here, such as calculating the negative log likelihood of the data given the model
-        loss = calculate_loss(X, doc_topic_dist, topic_word_dist)
-
-        loss.backward()
-        optimizer.step()
-
-    # Once you have trained your model, you can use it to generate topic distributions for new Chinese reviews
-
-    # For fine-tuning, you can adjust the optimizer parameters, learning rate, or even the model architecture
-'''
 def file_export(df, text):
     df.to_csv('test.csv')
 
     with open(r'words.txt','w') as fp:
         fp.write("\n".join(str(word) for word in text))
 
+def model_store(model,filename):
+    # To save model locally
+    filename = 'lda_model.sav'
+    joblib.dump(model, lda_filename)
 
+def load_model(model,filename):
+    pass
 
+def top_sentence_topic():
+    # Group top 5 sentences under each topic
+    sent_topics_sorteddf_mallet = pd.DataFrame()
+
+    sent_topics_outdf_grpd = df_topic_sents_keywords.groupby('Dominant_Topic')
+
+    for i, grp in sent_topics_outdf_grpd:
+        sent_topics_sorteddf_mallet = pd.concat([sent_topics_sorteddf_mallet,
+                                                 grp.sort_values(['Perc_Contribution'], ascending=[0]).head(1)],
+                                                axis=0)
+
+    # Reset Index
+    sent_topics_sorteddf_mallet.reset_index(drop=True, inplace=True)
+
+    # Format
+    sent_topics_sorteddf_mallet.columns = ['Topic_Num', "Topic_Perc_Contrib", "Keywords", "Text"]
+
+    # Show
+    sent_topics_sorteddf_mallet.head()
+    return sent_topics_sorteddf_mallet
 
 if __name__ == '__main__':
     # input your data with relative path
@@ -66,8 +67,22 @@ if __name__ == '__main__':
     # Export file to view its output
     file_export(customer_feedback, words_list)
 
-    # Call LDA model
-    lda_model = LDA(words_list)
+    # Call LDA model method
+    lda_model,corpus = LDA(words_list, num_topics=15)
+
+    # To save model locally
+    lda_filename = 'lda_model.sav'
+    joblib.dump(lda_model, lda_filename)
+
+    df_topic_sents_keywords = format_topics_sentences(lda_model,corpus, words_list)
+
+    # Format
+    df_dominant_topic = df_topic_sents_keywords.reset_index()
+    df_dominant_topic.columns = ['Document_No', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords', 'Text']
+
+    # Show
+    df_dominant_topic.head(10)
+
 
 
 

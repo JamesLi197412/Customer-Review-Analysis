@@ -6,7 +6,7 @@ import seaborn as sns
 import plotly.express as px
 
 def EDA(df):
-    # Explorating its dtypes, shapes and missing value by each column
+    # Exploring its dtypes, shapes and missing value by each column
     features_dtypes = df.dtypes
     rows, columns = df.shape
 
