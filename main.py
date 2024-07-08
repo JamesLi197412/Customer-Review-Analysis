@@ -14,6 +14,19 @@ import joblib
 def warn(*args, **kwargs):
     pass
 
+def read_lists():
+    corpus_list = []
+
+    with open(r'corpus.txt', 'r') as fp:
+        for line in fp:
+            # remove linebreak from a current name
+            # linebreak is the last character of each line
+            x = line[:-1]
+
+            # add current item to the list
+            corpus_list.append(x)
+
+    return corpus_list
 
 def file_export(df, text):
     df.to_csv('test.csv')
@@ -21,13 +34,18 @@ def file_export(df, text):
     with open(r'words.txt','w') as fp:
         fp.write("\n".join(str(word) for word in text))
 
-def model_store(model,filename):
-    # To save model locally
-    filename = 'lda_model.sav'
-    joblib.dump(model, lda_filename)
+def lda_operation(words_list,filename):
+    # Call LDA model method
+    lda_model, corpus = LDA(words_list, num_topics=10)
+
+    joblib.dump(lda_model, filename)
+    return lda_model, corpus
 
 def load_model(model,filename):
-    pass
+    loaded_model = joblib.load('lda_model.sav')
+    corpus = read_lists()
+
+    return loaded_model, corpus
 
 def top_sentence_topic():
     # Group top 5 sentences under each topic
@@ -68,11 +86,8 @@ if __name__ == '__main__':
     file_export(customer_feedback, words_list)
 
     # Call LDA model method
-    lda_model,corpus = LDA(words_list, num_topics=15)
+    lda_model, corpus = lda_operation(words_list,'lda_model.sav')
 
-    # To save model locally
-    lda_filename = 'lda_model.sav'
-    joblib.dump(lda_model, lda_filename)
 
     df_topic_sents_keywords = format_topics_sentences(lda_model,corpus, words_list)
 

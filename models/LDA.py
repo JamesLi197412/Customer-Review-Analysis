@@ -17,6 +17,8 @@ def LDA(words, num_topics = 10):
 
     # generate corpus as BoW
     corpus = [dictionary.doc2bow(word) for word in words]
+    # Export corpus locally in the future.
+    write_list(corpus)
 
     # train LDA model
     lda_model = LdaModel(corpus = corpus, id2word = dictionary, random_state = 4583, chunksize = 20, num_topics = num_topics,
@@ -32,11 +34,6 @@ def LDA(words, num_topics = 10):
     pyLDAvis.save_html(dickens_visual,'output/model_evaluation/lda.html')
     pyLDAvis.display(dickens_visual)
 
-    # Text classification
-    # generate document-topic distribution
-    #for i, doc in enumerate(corpus):
-    #    doc_topics = lda_model.get_document_topics(doc)
-    #    print(f"Document {i}:{doc_topics}")
     return lda_model,corpus
 
 
@@ -62,7 +59,11 @@ def format_topics_sentences(lda_model, corpus, words):
     sent_topics_df = pd.concat([sent_topics_df, contents], axis=1)
     return(sent_topics_df)
 
-
+def write_list(lists):
+    with open(r'corpus.txt', 'w') as fp:
+        for item in lists:
+            # write each item on a new line
+            fp.write("%s\n" % item)
 
 
 
