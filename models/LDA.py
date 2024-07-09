@@ -27,7 +27,7 @@ def LDA(words, num_topics = 10):
     # Evaluate models
     coherence_model = CoherenceModel(model=lda_model, texts=words, dictionary=dictionary, coherence='c_v')
     coherence_score = coherence_model.get_coherence()
-    print(coherence_score)
+    print('Coherence Score: {}'.format(coherence_score))
 
     # Visualize the topics
     dickens_visual = gensimvisualize.prepare(lda_model, corpus, dictionary, mds='mmds')
@@ -36,27 +36,41 @@ def LDA(words, num_topics = 10):
 
     return lda_model,corpus
 
+def corpus_only(words):
+    # Load the dictionary
+    dictionary = corpora.Dictionary(words)
+    dictionary.filter_extremes(no_below = 2)
 
-def format_topics_sentences(lda_model, corpus, words):
-    # Init output
+    # generate corpus as BoW
+    corpus = [dictionary.doc2bow(word) for word in words]
+
+    return corpus
+
+def format_topics_sentences(lda_model, corpus, data):
     sent_topics_df = pd.DataFrame()
-
     # Get main topic in each document
     for i, row in enumerate(lda_model[corpus]):
         row = sorted(row, key=lambda x: (x[1]), reverse=True)
+
         # Get the Dominant topic, Perc Contribution and Keywords for each document
         for j, (topic_num, prop_topic) in enumerate(row):
             if j == 0:  # => dominant topic
                 wp = lda_model.show_topic(topic_num)
                 topic_keywords = ", ".join([word for word, prop in wp])
-                sent_topics_df = sent_topics_df.append(pd.Series([int(topic_num), round(prop_topic,4), topic_keywords]), ignore_index=True)
+                #series = pd.DataFrame([int(topic_num), round(prop_topic,4), topic_keywords],
+                #                      columns = ['Dominant_Topic', 'Perc_Contribution','Topic_Keywords']
+                #)
+                series = [int(topic_num), round(prop_topic,4), topic_keywords]
+                series_df = pd.DataFrame([series], columns=['Dominant_Topic', 'Perc_Contribution','Topic_Keywords'] )
+
+                sent_topics_df = pd.concat([sent_topics_df,series_df], axis = 0, ignore_index= True)
             else:
                 break
-    sent_topics_df.columns = ['Dominant_Topic', 'Perc_Contribution', 'Topic_Keywords']
+
 
     # Add original text to the end of the output
-    contents = pd.Series(words)
-    sent_topics_df = pd.concat([sent_topics_df, contents], axis=1)
+
+    sent_topics_df = pd.concat([sent_topics_df, data], axis=1)
     return(sent_topics_df)
 
 def write_list(lists):

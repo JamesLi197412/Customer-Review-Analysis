@@ -1,11 +1,10 @@
-import nltk
-from nltk.stem.wordnet import WordNetLemmatizer
-import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
 import re
-import jieba  # Library for Chinese word segmentation
 from collections import defaultdict
 from multiprocessing import Pool
+
+import jieba  # Library for Chinese word segmentation
+import nltk
+from nltk.stem.wordnet import WordNetLemmatizer
 
 
 def data_preprocess(df,col):
@@ -81,23 +80,4 @@ def remove_duplicates(words_list):
 
     return temp
 
-def TF_IDF(words_list, n =100):
-    # Import Tfidf vectorizer
-    vectorizer = TfidfVectorizer()
-    vectors = vectorizer.fit_transform(words_list)
-    print("n_samples: %d, n_features: %d" % vectors.shape)
 
-    # Select the first n documents from the data set
-    tf_idf = pd.DataFrame(vectors.todense()).iloc[:n]
-    tf_idf.columns = vectorizer.get_feature_names()
-    # tf_idf.to_csv('test.csv')
-    tfidf_matrix = tf_idf.T
-    tfidf_matrix.columns = ['response' + str(i) for i in range(1, n)]
-    tfidf_matrix['count'] = tfidf_matrix.sum(axis=1)
-
-    # Top 50 words
-    tfidf_matrix = tfidf_matrix.sort_values(by='count', ascending=False)[:50]
-    tfidf_matrix.to_csv('test2.csv')
-
-    # Print the first 10 words
-    print(tfidf_matrix.drop(columns=['count']).head(10))

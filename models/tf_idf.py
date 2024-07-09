@@ -1,17 +1,34 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
 
-def tf_idf(words):
-    tfidf_vectorizer = TfidfVectorizer()
-    vectors = tfidf_vectorizer.fit_transform(words)
+def TF_IDF(words_list, n =5):
+    # Covert list of list to list of string
+    words_list = [item for t in words_list for item in t]
+    words_list = remove_duplicates(words_list)
 
-    tf_idf = pd.DataFrame(vectors.todense()).iloc[:5]
-    tf_idf.columns = tfidf_vectorizer.get_feature_names()
+    # Import Tfidf vectorizer
+    vectorizer = TfidfVectorizer()
+    vectors = vectorizer.fit_transform(words_list)
+    print("n_samples: %d, n_features: %d" % vectors.shape)
+
+    # Select the first n documents from the data set
+    tf_idf = pd.DataFrame(vectors.todense()).iloc[:n]
+    tf_idf.columns = vectorizer.get_feature_names()
+
     tfidf_matrix = tf_idf.T
-    tfidf_matrix.columns = ['response' + str(i) for i in range(1,6)]
-    tfidf_matrix['count'] = tfidf_matrix.sum(axis = 1)
+    tfidf_matrix.columns = ['response' + str(i) for i in range(1, n)]
+    tfidf_matrix['count'] = tfidf_matrix.sum(axis=1)
 
-    # Top 10 words
-    tfidf_matrix = tfidf_matrix.sort_values(by = 'count', ascending= False)[:10]
-    print(tfidf_matrix.drop(columns = ['count']).head(10))
-    return tfidf_matrix
+    # Top 50 words
+    tfidf_matrix = tfidf_matrix.sort_values(by='count', ascending=False)[:50]
+
+    # Print the first 10 words
+    print(tfidf_matrix.drop(columns=['count']).head(10))
+
+def remove_duplicates(words_list):
+    temp = []
+    for x in words_list:
+        if x not in temp:
+            temp.append(x)
+
+    return temp

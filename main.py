@@ -1,14 +1,11 @@
-from exploration.description import *
-from src.preprocess import *
-from models.LDA import *
-
 import warnings
+
 import joblib
 
-
-# Reference:
-# 1. https://zhuanlan.zhihu.com/p/86579316
-# 2. https://www.machinelearningplus.com/nlp/topic-modeling-python-sklearn-examples/
+from exploration.description import *
+from models.LDA import *
+from models.tf_idf import *
+from src.preprocess import *
 
 
 def warn(*args, **kwargs):
@@ -16,14 +13,9 @@ def warn(*args, **kwargs):
 
 def read_lists():
     corpus_list = []
-
-    with open(r'corpus.txt', 'r') as fp:
-        for line in fp:
-            # remove linebreak from a current name
-            # linebreak is the last character of each line
-            x = line[:-1]
-
-            # add current item to the list
+    with open(r'corpus.txt', 'r') as f:
+        for line in f:
+            x = (line[:-1])
             corpus_list.append(x)
 
     return corpus_list
@@ -41,17 +33,19 @@ def lda_operation(words_list,filename):
     joblib.dump(lda_model, filename)
     return lda_model, corpus
 
-def load_model(model,filename):
+
+def load_model():
     loaded_model = joblib.load('lda_model.sav')
-    corpus = read_lists()
 
-    return loaded_model, corpus
+    return loaded_model
 
-def top_sentence_topic():
+
+def top_sentence_topic(df_topic_sents_keywords):
     # Group top 5 sentences under each topic
     sent_topics_sorteddf_mallet = pd.DataFrame()
 
     sent_topics_outdf_grpd = df_topic_sents_keywords.groupby('Dominant_Topic')
+    print(sent_topics_outdf_grpd.head(5))
 
     for i, grp in sent_topics_outdf_grpd:
         sent_topics_sorteddf_mallet = pd.concat([sent_topics_sorteddf_mallet,
@@ -62,11 +56,11 @@ def top_sentence_topic():
     sent_topics_sorteddf_mallet.reset_index(drop=True, inplace=True)
 
     # Format
-    sent_topics_sorteddf_mallet.columns = ['Topic_Num', "Topic_Perc_Contrib", "Keywords", "Text"]
+    sent_topics_sorteddf_mallet.columns = ['Topic_Num', "Perc_Contribution", "Topic_Keywords", "CONTENT_TX"]
 
-    # Show
-    sent_topics_sorteddf_mallet.head()
     return sent_topics_sorteddf_mallet
+
+
 
 if __name__ == '__main__':
     # input your data with relative path
@@ -75,35 +69,29 @@ if __name__ == '__main__':
 
     # Column Adjustment
     customer_feedback = data_process(customer_feedback,'SURVEY_TIME','CONTENT_TX')
-    # visulaisation(customer_feedback)  # generate visualisatoin output to folder
+    # visulaisation(customer_feedback)  # generate visualisation and export it output folder
 
     customer_feedback = EDA(customer_feedback)
 
     # word process -- > add cleaned reviews columns
-    customer_feedback,words_list = data_preprocess(customer_feedback, 'CONTENT_TX')
+    customer_feedback, words_list = data_preprocess(customer_feedback, 'CONTENT_TX')
 
+    '''
     # Export file to view its output
     file_export(customer_feedback, words_list)
 
     # Call LDA model method
-    lda_model, corpus = lda_operation(words_list,'lda_model.sav')
-
-
-    df_topic_sents_keywords = format_topics_sentences(lda_model,corpus, words_list)
+    lda_model, corpus = lda_operation(words_list, 'lda_model.sav')
+    # lda_model = load_model()
+    # corpus = corpus_only(words_list)
+    df_topic_sents_keywords = format_topics_sentences(lda_model, corpus, customer_feedback)
 
     # Format
     df_dominant_topic = df_topic_sents_keywords.reset_index()
-    df_dominant_topic.columns = ['Document_No', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords', 'Text']
+    df_dominant_topic_sub = df_topic_sents_keywords[
+        ['Dominant_Topic', 'Perc_Contribution', 'Topic_Keywords', 'CONTENT_TX']].copy(deep=True)
 
-    # Show
-    df_dominant_topic.head(10)
-
-
-
-
-
-
-
-
-
+    sent_topics_sorteddf_mallet = top_sentence_topic(df_dominant_topic_sub)
+    '''
+    TF_IDF(words_list, n=5)
 
