@@ -1,41 +1,52 @@
-from gensim.models import word2vec
 import numpy as np
-# Link : https://towardsdatascience.com/a-word2vec-implementation-using-numpy-and-python-d256cf0e5f28
+from gensim.models import Word2Vec, FastText
+from sklearn.decomposition import PCA
+from matplotlib import pyplot as plt
 
-def word2vec_analysis(df):
-    reviews = df['CONTENT_TX'].copy(deep = True)
 
-    w2v = word2vec(reviews, min_count = 1, size = 5)
-    return None
+def word2vec_gensim(words_list):
+    model = Word2Vec(words_list, min_count=1)
+
+    X = model[model.wv.vocab]
+    words = list(model.wv.index_to_key)
+    pca = PCA(n_components = 2)
+
+    result = pca.fit_transform(X)
+
+    # create a scatter plot of the project
+    plt.scatter(result[:, 0], result[:, 1])
+    words = list(model.wv.vocab)
+
+    for i, word in enumerate(words):
+        plt.annotate(word, xy=(result[i, 0], result[i, 1]))
+
+    plt.show()
+
+
 
 def generate_dictionary_data(text):
-    # initilisation
     word_to_index = dict()
     index_to_word = dict()
     corpus = []
     count = 0
-    vocab_size = 0
 
     for row in text:
-        for word in row.split():
+        for word in row:
             corpus.append(word)
+
             if word_to_index.get(word) == None:
-                word_to_index.update({word:count})
-                index_to_word.update({count:word})
+                word_to_index |= {word:count}
+                index_to_word |= {count:word}
                 count+=1
+
     vocab_size = len(word_to_index)
     length_of_corpus = len(corpus)
 
     return word_to_index, index_to_word, corpus, vocab_size, length_of_corpus
 
-
 def get_one_hot_vectors(target_word, context_words, vocab_size, word_to_index):
-    # Create an array of size = vocab_size filled with zeros
     trgt_word_vector = np.zeros(vocab_size)
 
-    # Get the index of the target_word according to the dictionary word_to_index.
-    # If target_word = best, the index according to the dictionary word_to_index is 0.
-    # So the one hot vector will be [1, 0, 0, 0, 0, 0, 0, 0, 0]
     index_of_word_dictionary = word_to_index.get(target_word)
 
     # Set the index to 1
@@ -54,27 +65,21 @@ def get_one_hot_vectors(target_word, context_words, vocab_size, word_to_index):
 def generate_training_data(corpus, window_size, vocab_size, word_to_index, length_of_corpus, sample=None):
     training_data = []
     training_sample_words = []
-    for i, word in enumerate(corpus):
 
+    for i, word in enumerate(corpus):
         index_target_word = i
         target_word = word
         context_words = []
 
         # when target word is the first word
         if i == 0:
-
-            # trgt_word_index:(0), ctxt_word_index:(1,2)
             context_words = [corpus[x] for x in range(i + 1, window_size + 1)]
 
-            # when target word is the last word
         elif i == len(corpus) - 1:
-
-            # trgt_word_index:(9), ctxt_word_index:(8,7), length_of_corpus = 10
             context_words = [corpus[x] for x in range(length_of_corpus - 2, length_of_corpus - 2 - window_size, -1)]
 
         # When target word is the middle word
         else:
-
             # Before the middle target word
             before_target_word_index = index_target_word - 1
             for x in range(before_target_word_index, before_target_word_index - window_size, -1):
@@ -94,6 +99,7 @@ def generate_training_data(corpus, window_size, vocab_size, word_to_index, lengt
             training_sample_words.append([target_word, context_words])
 
     return training_data, training_sample_words
+
 
 
 def forward_prop(weight_inp_hidden, weight_hidden_output, target_word_vector):
@@ -144,6 +150,25 @@ def backward_prop(weight_inp_hidden, weight_hidden_output, total_error, hidden_l
     return weight_inp_hidden, weight_hidden_output
 
 
+def calculate_error(y_pred, context_words):
+    total_error = [None] * len(y_pred)
+    index_of_1_in_context_words = {}
+
+    for index in np.where(context_words == 1)[0]:
+        index_of_1_in_context_words.update({index: 'yes'})
+
+    number_of_1_in_context_vector = len(index_of_1_in_context_words)
+
+    for i, value in enumerate(y_pred):
+
+        if index_of_1_in_context_words.get(i) != None:
+            total_error[i] = (value - 1) + ((number_of_1_in_context_vector - 1) * value)
+        else:
+            total_error[i] = (number_of_1_in_context_vector * value)
+
+    return np.array(total_error)
+
+
 def calculate_loss(u, ctx):
     sum_1 = 0
     for index in np.where(ctx == 1)[0]:
@@ -154,3 +179,62 @@ def calculate_loss(u, ctx):
 
     total_loss = sum_1 + sum_2
     return total_loss
+
+
+def train(word_embedding_dimension, window_size, epochs, training_data, learning_rate, disp='no', interval=-1):
+    weights_input_hidden = np.random.uniform(-1, 1, (vocab_size, word_embedding_dimension))
+    weights_hidden_output = np.random.uniform(-1, 1, (word_embedding_dimension, vocab_size))
+
+    # For analysis purposes
+    epoch_loss = []
+    weights_1 = []
+    weights_2 = []
+
+    for epoch in range(epochs):
+        loss = 0
+
+        for target, context in training_data:
+            y_pred, hidden_layer, u = forward_prop(weights_input_hidden, weights_hidden_output, target)
+
+            total_error = calculate_error(y_pred, context)
+
+            weights_input_hidden, weights_hidden_output = backward_prop(
+                weights_input_hidden, weights_hidden_output, total_error, hidden_layer, target, learning_rate
+            )
+
+            loss_temp = calculate_loss(u, context)
+            loss += loss_temp
+
+        epoch_loss.append(loss)
+        weights_1.append(weights_input_hidden)
+        weights_2.append(weights_hidden_output)
+
+        if disp == 'yes':
+            if epoch == 0 or epoch % interval == 0 or epoch == epochs - 1:
+                print('Epoch: %s. Loss:%s' % (epoch, loss))
+    return epoch_loss, np.array(weights_1), np.array(weights_2)
+
+
+# Input vector, returns nearest word(s)
+def cosine_similarity(word, weight, word_to_index, vocab_size, index_to_word):
+    # Get the index of the word from the dictionary
+    index = word_to_index[word]
+
+    # Get the correspondin weights for the word
+    word_vector_1 = weight[index]
+
+    word_similarity = {}
+
+    for i in range(vocab_size):
+        word_vector_2 = weight[i]
+
+        theta_sum = np.dot(word_vector_1, word_vector_2)
+        theta_den = np.linalg.norm(word_vector_1) * np.linalg.norm(word_vector_2)
+        theta = theta_sum / theta_den
+
+        word = index_to_word[i]
+        word_similarity[word] = theta
+
+    return word_similarity  # words_sorted
+
+

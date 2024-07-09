@@ -5,6 +5,7 @@ import joblib
 from exploration.description import *
 from models.LDA import *
 from models.tf_idf import *
+from models.word2vec import *
 from src.preprocess import *
 
 
@@ -33,12 +34,10 @@ def lda_operation(words_list,filename):
     joblib.dump(lda_model, filename)
     return lda_model, corpus
 
-
 def load_model():
     loaded_model = joblib.load('lda_model.sav')
 
     return loaded_model
-
 
 def top_sentence_topic(df_topic_sents_keywords):
     # Group top 5 sentences under each topic
@@ -60,11 +59,21 @@ def top_sentence_topic(df_topic_sents_keywords):
 
     return sent_topics_sorteddf_mallet
 
+def word2vec_run(data, window_size):
+    word_to_index, index_to_word, corpus, vocab_size, length_of_corpus = generate_dictionary_data(data)
+    print(corpus)
+    #training_data, training_sample_words = generate_training_data(corpus,window_size,vocab_size,word_to_index,length_of_corpus,'Yes')
+    #np.savetxt('myarray.txt', training_data)
+
+
+
+
 
 
 if __name__ == '__main__':
     # input your data with relative path
     warnings.warn = warn()
+
     customer_feedback = pd.read_excel('data/CUSTOMER_FEEDBACK.xlsx', sheet_name='Sheet')
 
     # Column Adjustment
@@ -74,8 +83,8 @@ if __name__ == '__main__':
     customer_feedback = EDA(customer_feedback)
 
     # word process -- > add cleaned reviews columns
-    customer_feedback, words_list = data_preprocess(customer_feedback, 'CONTENT_TX')
-
+    customer_feedback, words_list = data_preprocess(customer_feedback, 'CONTENT_TX')  # words_list -- list of list
+    customer_feedback.to_csv('test.csv')
     '''
     # Export file to view its output
     file_export(customer_feedback, words_list)
@@ -93,5 +102,9 @@ if __name__ == '__main__':
 
     sent_topics_sorteddf_mallet = top_sentence_topic(df_dominant_topic_sub)
     '''
-    TF_IDF(words_list, n=5)
+    # TF_IDF(words_list, n=5)
+
+    # Run word2vec
+    # word2vec_run(data = words_list, window_size=2)
+    word2vec_gensim(words_list)
 
