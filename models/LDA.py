@@ -25,7 +25,7 @@ def LDA(words, num_topics = 10):
                          passes = 200, iterations = 100)
 
     # Evaluate models
-    coherence_model = CoherenceModel(model=lda_model, texts=words, dictionary=dictionary, coherence='c_v')
+    coherence_model = CoherenceModel(model =lda_model, texts=words, dictionary=dictionary, coherence='c_v')
     coherence_score = coherence_model.get_coherence()
     print('Coherence Score: {}'.format(coherence_score))
 

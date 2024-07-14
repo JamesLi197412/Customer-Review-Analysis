@@ -59,11 +59,18 @@ def top_sentence_topic(df_topic_sents_keywords):
 
     return sent_topics_sorteddf_mallet
 
-def word2vec_run(data, window_size):
-    word_to_index, index_to_word, corpus, vocab_size, length_of_corpus = generate_dictionary_data(data)
-    print(corpus)
-    #training_data, training_sample_words = generate_training_data(corpus,window_size,vocab_size,word_to_index,length_of_corpus,'Yes')
-    #np.savetxt('myarray.txt', training_data)
+def topic_modelling(words_list):
+    lda_model, corpus = lda_operation(words_list, 'lda_model.sav')
+    # lda_model = load_model()
+    # corpus = corpus_only(words_list)
+    df_topic_sents_keywords = format_topics_sentences(lda_model, corpus, customer_feedback)
+
+    # Format
+    df_dominant_topic = df_topic_sents_keywords.reset_index()
+    df_dominant_topic_sub = df_topic_sents_keywords[
+        ['Dominant_Topic', 'Perc_Contribution', 'Topic_Keywords', 'CONTENT_TX']].copy(deep=True)
+
+    sent_topics_sorteddf_mallet = top_sentence_topic(df_dominant_topic_sub)
 
 
 
@@ -84,8 +91,8 @@ if __name__ == '__main__':
 
     # word process -- > add cleaned reviews columns
     customer_feedback, words_list = data_preprocess(customer_feedback, 'CONTENT_TX')  # words_list -- list of list
-    customer_feedback.to_csv('test.csv')
-    '''
+
+
     # Export file to view its output
     file_export(customer_feedback, words_list)
 
@@ -101,10 +108,8 @@ if __name__ == '__main__':
         ['Dominant_Topic', 'Perc_Contribution', 'Topic_Keywords', 'CONTENT_TX']].copy(deep=True)
 
     sent_topics_sorteddf_mallet = top_sentence_topic(df_dominant_topic_sub)
-    '''
-    # TF_IDF(words_list, n=5)
 
-    # Run word2vec
-    # word2vec_run(data = words_list, window_size=2)
-    word2vec_gensim(words_list)
+
+
+
 
