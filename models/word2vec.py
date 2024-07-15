@@ -1,7 +1,6 @@
 import multiprocessing
 from gensim.models import Word2Vec
 from gensim.models import Phrases
-# reference: https://github.com/rahul1728jha/Word2Vec_Implementation/blob/master/Word_2_Vec.ipynb
 
 # Word2Vec -- Skil-grams & Continuous-bag-of-words.
 def word2vec_gensim(words_list):
@@ -13,7 +12,7 @@ def word2vec_gensim(words_list):
                      vector_size = 100,
                      window = 5,
                      workers = cores - 1,
-                     epochs= 20)
+                     epochs= 200)
     # save the model
     model.save("word2vec.model")
 

@@ -1,11 +1,10 @@
 import warnings
-
 import joblib
-
 from exploration.description import *
 from models.LDA import *
 from models.tf_idf import *
 from models.word2vec import *
+from models.LSTM import *
 from src.preprocess import *
 
 
@@ -29,7 +28,7 @@ def file_export(df, text):
 
 def lda_operation(words_list,filename):
     # Call LDA model method
-    lda_model, corpus = LDA(words_list, num_topics=10)
+    lda_model, corpus = LDA(words_list, num_topics=20)
 
     joblib.dump(lda_model, filename)
     return lda_model, corpus
@@ -59,18 +58,24 @@ def top_sentence_topic(df_topic_sents_keywords):
 
     return sent_topics_sorteddf_mallet
 
-def topic_modelling(words_list):
-    lda_model, corpus = lda_operation(words_list, 'lda_model.sav')
-    # lda_model = load_model()
-    # corpus = corpus_only(words_list)
+def topic_modelling_lda(words_list, option = 2):
+    if option == 1:
+        # when you call the function to train the model
+        lda_model, corpus = lda_operation(words_list, 'lda_model.sav')
+    else:
+        lda_model = load_model()
+        corpus = corpus_only(words_list)
+
     df_topic_sents_keywords = format_topics_sentences(lda_model, corpus, customer_feedback)
 
     # Format
     df_dominant_topic = df_topic_sents_keywords.reset_index()
+    #df_dominant_topic.to_csv('df_dominant_topic.csv')
     df_dominant_topic_sub = df_topic_sents_keywords[
-        ['Dominant_Topic', 'Perc_Contribution', 'Topic_Keywords', 'CONTENT_TX']].copy(deep=True)
-
-    sent_topics_sorteddf_mallet = top_sentence_topic(df_dominant_topic_sub)
+        ['Dominant_Topic', 'Perc_Contribution', 'Topic_Keywords', 'CONTENT_TX','LEVEL_ID']].copy(deep=True)
+    #df_dominant_topic_sub.to_csv('df_dominant_topic_sub.csv')
+    return df_dominant_topic_sub
+    # sent_topics_sorteddf_mallet = top_sentence_topic(df_dominant_topic_sub)
 
 
 
@@ -96,18 +101,8 @@ if __name__ == '__main__':
     # Export file to view its output
     file_export(customer_feedback, words_list)
 
-    # Call LDA model method
-    lda_model, corpus = lda_operation(words_list, 'lda_model.sav')
-    # lda_model = load_model()
-    # corpus = corpus_only(words_list)
-    df_topic_sents_keywords = format_topics_sentences(lda_model, corpus, customer_feedback)
-
-    # Format
-    df_dominant_topic = df_topic_sents_keywords.reset_index()
-    df_dominant_topic_sub = df_topic_sents_keywords[
-        ['Dominant_Topic', 'Perc_Contribution', 'Topic_Keywords', 'CONTENT_TX']].copy(deep=True)
-
-    sent_topics_sorteddf_mallet = top_sentence_topic(df_dominant_topic_sub)
+    df_dominant_topic_sub = topic_modelling_lda(words_list, 1)
+    # lstm_model(df_dominant_topic_sub, vocab_size = 100)
 
 
 
