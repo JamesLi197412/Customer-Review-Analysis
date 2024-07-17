@@ -1,15 +1,14 @@
 import warnings
 import joblib
+import pandas as pd
+
 from exploration.description import *
 from models.LDA import *
 from models.tf_idf import *
 from models.word2vec import *
-from models.LSTM import *
+#from models.LSTM import *
 from src.preprocess import *
 
-
-def warn(*args, **kwargs):
-    pass
 
 def read_lists():
     corpus_list = []
@@ -38,25 +37,29 @@ def load_model():
 
     return loaded_model
 
-def top_sentence_topic(df_topic_sents_keywords):
-    # Group top 5 sentences under each topic
-    sent_topics_sorteddf_mallet = pd.DataFrame()
+def remove_duplicates(words_list):
+    temp = []
+    for x in words_list:
+        if x not in temp:
+            temp.append(x)
 
-    sent_topics_outdf_grpd = df_topic_sents_keywords.groupby('Dominant_Topic')
-    print(sent_topics_outdf_grpd.head(5))
+    return temp
 
-    for i, grp in sent_topics_outdf_grpd:
-        sent_topics_sorteddf_mallet = pd.concat([sent_topics_sorteddf_mallet,
-                                                 grp.sort_values(['Perc_Contribution'], ascending=[0]).head(1)],
-                                                axis=0)
+def top_sentence_topic(df_topic_sents_keywords,N = 5):
+    topics_reviews = {}
 
-    # Reset Index
-    sent_topics_sorteddf_mallet.reset_index(drop=True, inplace=True)
+    # Loop through each main topic
+    topics = df_topic_sents_keywords['Topic_Keywords'].unique()
+    for topic in topics:
+        topic_sub = df_topic_sents_keywords[df_topic_sents_keywords['Topic_Keywords'] == topic].copy(deep = True)
+        topic_sub = topic_sub.sort_values('Perc_Contribution').head(N)
+        content_lists = list(topic_sub['cleaned reviews'])
+        content = remove_duplicates([item for t in content_lists for item in t])
 
-    # Format
-    sent_topics_sorteddf_mallet.columns = ['Topic_Num', "Perc_Contribution", "Topic_Keywords", "CONTENT_TX"]
+        topics_reviews[topic] = content
 
-    return sent_topics_sorteddf_mallet
+    topics_reviews_df = pd.DataFrame(topics_reviews.items(), columns = ['Topics', 'Comments'])
+    return topics_reviews_df
 
 def topic_modelling_lda(words_list, option = 2):
     if option == 1:
@@ -70,22 +73,16 @@ def topic_modelling_lda(words_list, option = 2):
 
     # Format
     df_dominant_topic = df_topic_sents_keywords.reset_index()
-    #df_dominant_topic.to_csv('df_dominant_topic.csv')
-    df_dominant_topic_sub = df_topic_sents_keywords[
-        ['Dominant_Topic', 'Perc_Contribution', 'Topic_Keywords', 'CONTENT_TX','LEVEL_ID']].copy(deep=True)
-    #df_dominant_topic_sub.to_csv('df_dominant_topic_sub.csv')
-    return df_dominant_topic_sub
-    # sent_topics_sorteddf_mallet = top_sentence_topic(df_dominant_topic_sub)
+    df_dominant_topic_sub = df_dominant_topic[
+        ['Dominant_Topic', 'Perc_Contribution', 'Topic_Keywords', 'CONTENT_TX','LEVEL_ID','cleaned reviews']].copy(deep=True)
 
-
-
-
+    # Evaulation
+    topics_review = top_sentence_topic(df_dominant_topic_sub, N = 5)
+    return df_dominant_topic_sub, topics_review
 
 
 if __name__ == '__main__':
     # input your data with relative path
-    warnings.warn = warn()
-
     customer_feedback = pd.read_excel('data/CUSTOMER_FEEDBACK.xlsx', sheet_name='Sheet')
 
     # Column Adjustment
@@ -101,7 +98,9 @@ if __name__ == '__main__':
     # Export file to view its output
     file_export(customer_feedback, words_list)
 
-    df_dominant_topic_sub = topic_modelling_lda(words_list, 1)
+    # LDA modelling
+    df_dominant_topic_sub,topic_reviews = topic_modelling_lda(words_list, 2)
+    topic_reviews.to_csv('result.csv',encoding='utf-8-sig')
     # lstm_model(df_dominant_topic_sub, vocab_size = 100)
 
 
