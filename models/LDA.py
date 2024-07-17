@@ -7,6 +7,7 @@ import pyLDAvis.gensim_models as gensimvisualize
 from gensim.models import LdaModel
 from gensim.models.coherencemodel import CoherenceModel
 
+
 def LDA(words, num_topics=20):
     # Load the dictionary
     dictionary = corpora.Dictionary(words)
@@ -68,5 +69,3 @@ def format_topics_sentences(lda_model, corpus, data):
 
     sent_topics_df = pd.concat([sent_topics_df, data], axis=1)
     return (sent_topics_df)
-
-

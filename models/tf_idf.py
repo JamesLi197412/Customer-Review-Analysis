@@ -1,7 +1,8 @@
-from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
 
-def TF_IDF(words_list, n =5):
+
+def TF_IDF(words_list, n=5):
     # Covert list of list to list of string
     words_list = [item for t in words_list for item in t]
     words_list = remove_duplicates(words_list)
@@ -24,6 +25,7 @@ def TF_IDF(words_list, n =5):
 
     # Print the first 10 words
     print(tfidf_matrix.drop(columns=['count']).head(10))
+
 
 def remove_duplicates(words_list):
     temp = []
