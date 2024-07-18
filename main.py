@@ -102,6 +102,6 @@ if __name__ == '__main__':
     file_export(customer_feedback, words_list)
 
     # LDA modelling
-    df_dominant_topic_sub, topic_reviews = topic_modelling_lda(words_list, 2)
+    df_dominant_topic_sub, topic_reviews = topic_modelling_lda(words_list, 1)
     topic_reviews.to_csv('result.csv', encoding='utf-8-sig')
     # lstm_model(df_dominant_topic_sub, vocab_size = 100)
