@@ -1,97 +1,132 @@
+import json
+from pathlib import Path
+
 import matplotlib
-import pandas as pd
-
-matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
-import plotly.express as px
+
+matplotlib.rcParams["font.sans-serif"] = ["Arial Unicode MS", "Noto Sans CJK SC", "SimHei", "sans-serif"]
+matplotlib.rcParams["axes.unicode_minus"] = False
 
 
-def EDA(df):
-    # Exploring its dtypes, shapes and missing value by each column
-    features_dtypes = df.dtypes
-    rows, columns = df.shape
-
-    # Missing values
-    missing_values_col = df.isnull().sum()
-    missing_values_sort = missing_values_col.sort_values(ascending=False)
-
-    features_names = missing_values_sort.index.values
-    missing_values = missing_values_sort.values
-
-    print('=' * 100)
-    print('===> This data frame contains {} rows and {} columns'.format(rows, columns))
-    print('=' * 100)
-
-    print("{:13}{:13}{:30}{:15}".format('Feature Name'.upper(),
-                                        'Data Format'.upper(),
-                                        'Number of Missing Values By Columns'.upper(),
-                                        'The first few samples'.upper()))
-
-    for features_names, features_dtypes, missing_values in zip(features_names, features_dtypes[features_names],
-                                                               missing_values_sort):
-        print('{:15} {:14} {:20}'.format(features_names, str(features_dtypes), str(missing_values)), end=" ")
-
-        for i in range(5):
-            print(df[features_names].iloc[i], end=",")
-
-        print("=" * 50)
-
-    return df
+def build_data_profile(df):
+    profile = {
+        "rows": int(df.shape[0]),
+        "columns": int(df.shape[1]),
+        "missing_by_column": {column: int(value) for column, value in df.isnull().sum().items()},
+        "dtypes": {column: str(dtype) for column, dtype in df.dtypes.items()},
+    }
+    return profile
 
 
-def visulaisation(df):
-    # Chinese world se
-    matplotlib.rcParams['font.sans-serif'] = 'Arial Unicode MS'
-    matplotlib.rcParams['axes.labelsize'] = '15'
+def EDA(df, output_path="output/analysis/data_profile.json"):
+    profile = build_data_profile(df)
 
-    # TRADE_ZONE DISTRIBUTION
-    file_path = 'output/visualisation/TRADE ZONE DISTRIBUTION.png'
-    pie_chart(df, 'TRADE_ZONE', 'STORE_CODE', 'TRADE ZONE Distribution', file_path)
+    print("=" * 100)
+    print(f"===> This data frame contains {profile['rows']} rows and {profile['columns']} columns")
+    print("=" * 100)
 
-    # LEVEL_ID Distribution
-    file_path = 'output/visualisation/LEVEL_ID Barchart.png'
-    pie_chart(df, 'LEVEL_ID', 'STORE_CODE', 'LEVEL ID Distribution', file_path)
+    print(
+        "{:20}{:18}{:18}{}".format(
+            "FEATURE NAME",
+            "DATA FORMAT",
+            "MISSING VALUES",
+            "FIRST FEW SAMPLES",
+        )
+    )
 
-    file_path = 'output/visualisation/Review Length Barchart.png'
-    bar_chart(df, file_path)
+    missing_sorted = df.isnull().sum().sort_values(ascending=False)
+    for feature_name in missing_sorted.index:
+        dtype_value = str(df[feature_name].dtype)
+        missing_value = int(missing_sorted[feature_name])
+        samples = ",".join(str(value) for value in df[feature_name].head(5).tolist())
+        print("{:20}{:18}{:18}{}".format(feature_name, dtype_value, missing_value, samples))
+
+    if output_path:
+        output_file = Path(output_path)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        with output_file.open("w", encoding="utf-8") as file:
+            json.dump(profile, file, ensure_ascii=False, indent=2)
 
     return df
 
 
-def bar_chart(df, file_path):
-    review_length_bar = df.groupby(['content_len']).count().reset_index()
-    reviews_len = review_length_bar[['content_len', 'STORE_CODE']]
-    reviews_len.columns = ['content_len', 'frequency']
-    fig = px.bar(reviews_len, x="content_len", y="frequency", title="customer review length")
-    fig.write_image(file_path)
-    # fig.show()
+def visulaisation(df, output_dir="output/visualisation", show=False):
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    pie_chart(
+        df,
+        "TRADE_ZONE",
+        "STORE_CODE",
+        "TRADE ZONE Distribution",
+        output_path / "TRADE ZONE DISTRIBUTION.png",
+        show=show,
+    )
+    pie_chart(
+        df,
+        "LEVEL_ID",
+        "STORE_CODE",
+        "LEVEL ID Distribution",
+        output_path / "LEVEL_ID Barchart.png",
+        show=show,
+    )
+    bar_chart(df, output_path / "Review Length Barchart.png", show=show)
+
+    return df
 
 
-def pie_chart(dataframe, col, target, title, file_path):
-    plt.figure(figsize=(10, 5), dpi=100)
-    labels = dataframe[col].unique()
-    colors = sns.color_palette('pastel')[0:len(labels)]
-    target_df = dataframe.groupby([col])[target].agg(['count']).reset_index()
+def bar_chart(df, file_path, show=False):
+    review_length_bar = df.groupby(["content_len"], as_index=False)["STORE_CODE"].count()
+    review_length_bar.columns = ["content_len", "frequency"]
+    review_length_bar = review_length_bar.sort_values("content_len")
 
-    plt.pie(target_df['count'], labels=labels,
-            autopct='%1.2f%%', startangle=45, colors=colors,
-            labeldistance=0.75, pctdistance=0.4)
-    plt.title(title, fontsize=20)
-    plt.axis('off')
-    plt.legend()
+    plt.figure(figsize=(10, 5), dpi=120)
+    sns.lineplot(data=review_length_bar, x="content_len", y="frequency")
+    plt.title("Customer review length")
+    plt.xlabel("content_len")
+    plt.ylabel("frequency")
+    plt.tight_layout()
     plt.savefig(file_path)
-    plt.show()
+    if show:
+        plt.show()
+    plt.close()
+
+
+def pie_chart(dataframe, col, target, title, file_path, show=False):
+    target_df = dataframe.groupby([col], dropna=False)[target].agg(["count"]).reset_index()
+    target_df = target_df.sort_values("count", ascending=False)
+    labels = target_df[col].astype(str).tolist()
+    colors = sns.color_palette("pastel")[0 : len(labels)]
+
+    plt.figure(figsize=(10, 5), dpi=120)
+    plt.pie(
+        target_df["count"],
+        labels=labels,
+        autopct="%1.2f%%",
+        startangle=45,
+        colors=colors,
+        labeldistance=0.75,
+        pctdistance=0.4,
+    )
+    plt.title(title, fontsize=16)
+    plt.axis("off")
+    plt.legend(labels, loc="best")
+    plt.tight_layout()
+    plt.savefig(file_path)
+    if show:
+        plt.show()
+    plt.close()
 
 
 def data_process(dataframe, datetimecol, wordcol):
-    # Covert date_time col Into multiple new columns (Year, month, day, hour)
-    dataframe[datetimecol] = pd.to_datetime(dataframe[datetimecol])
-    dataframe['Year'] = dataframe[datetimecol].dt.year
-    dataframe['month'] = dataframe[datetimecol].dt.month
-    dataframe['day'] = dataframe[datetimecol].dt.day
-    dataframe['hour'] = dataframe[datetimecol].dt.hour
+    processed_df = dataframe.copy()
+    processed_df[datetimecol] = pd.to_datetime(processed_df[datetimecol], errors="coerce")
+    processed_df["Year"] = processed_df[datetimecol].dt.year
+    processed_df["month"] = processed_df[datetimecol].dt.month
+    processed_df["day"] = processed_df[datetimecol].dt.day
+    processed_df["hour"] = processed_df[datetimecol].dt.hour
+    processed_df["content_len"] = processed_df[wordcol].fillna("").astype(str).str.len()
 
-    dataframe['content_len'] = dataframe[wordcol].str.len()
-
-    return dataframe
+    return processed_df

@@ -1,52 +1,30 @@
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
+import tensorflow as tf
 
 
-# import keras
-# from keras.models import Sequential
-# from keras.preprocessing.sequence import pad_sequences
-# from keras.layers import Embedding, LSTM, Dense
-# from sklearn.metrics import accuracy_score
+def build_lstm_text_classifier(num_classes=3, max_tokens=30000, sequence_length=120, embedding_dim=128):
+    text_vectorizer = tf.keras.layers.TextVectorization(
+        standardize=None,
+        split="whitespace",
+        max_tokens=max_tokens,
+        output_mode="int",
+        output_sequence_length=sequence_length,
+    )
 
-def lstm_model(df):
-    # vocab_size - 3000, embedding_dim = 100, max_length = 200
-    reviews = df['Topic_Keywords'].values
-    labels = df['LEVEL_ID'].values
+    model = tf.keras.Sequential(
+        [
+            tf.keras.layers.Input(shape=(1,), dtype=tf.string),
+            text_vectorizer,
+            tf.keras.layers.Embedding(max_tokens, embedding_dim, mask_zero=True),
+            tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64)),
+            tf.keras.layers.Dense(64, activation="relu"),
+            tf.keras.layers.Dropout(0.3),
+            tf.keras.layers.Dense(num_classes, activation="softmax"),
+        ]
+    )
 
-    encoder = LabelEncoder()
-    encoded_labels = encoder.fit_transform(labels)
-
-    train_sentences, test_sentences, train_labels, test_labels = train_test_split(reviews, encoded_labels,
-                                                                                  stratify=encoded_labels)
-
-    max_words = 1000
-    embedding_dim = 100
-    max_len = 100
-
-#
-#     model = keras.Sequential([
-#         keras.layers.Embedding(input_dim = len(train_sentences), output_dim = 200),
-#         keras.layers.Bidirectional(keras.layers.LSTM(64)),
-#         keras.layers.Dense(2, activation='relu'),
-#         keras.layers.Dense(1, activation='sigmoid')
-#     ])
-#
-#     return model, train_sentences, test_sentences, train_labels, test_labels
-#
-# def train_model(model, train_sentences, train_labels):
-#     num_epochs = 5
-#     history = model.fit(train_sentences, train_labels,
-#                         epochs=num_epochs, verbose=1,
-#                         validation_split=0.1)
-#
-# def evaulation(model, test_df,test_labels):
-#     prediction = model.predict(test_df)
-#
-#     # Evaulation
-#     # Get labels based on probability 1 if p>= 0.5 else 0
-#     pred_labels = []
-#     for i in prediction:
-#         if i >= 0.5:
-#             pred_labels.append(1)
-#         else:
-#             pred_labels.append(0)
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+        metrics=["accuracy"],
+    )
+    return model, text_vectorizer

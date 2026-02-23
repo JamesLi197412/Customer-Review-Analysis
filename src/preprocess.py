@@ -1,50 +1,133 @@
 import re
 from collections import defaultdict
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
+from pathlib import Path
 
-import jieba  # Library for Chinese word segmentation
-import nltk
-from nltk.stem.wordnet import WordNetLemmatizer
+import pandas as pd
+
+try:
+    import jieba
+except ModuleNotFoundError:
+    jieba = None
+
+DEFAULT_STOPWORDS = {
+    "",
+    " ",
+    "\n",
+    "\t",
+    "，",
+    "。",
+    "！",
+    "？",
+    "、",
+    "；",
+    "：",
+    "（",
+    "）",
+    "(",
+    ")",
+    "...",
+    "…",
+    "'",
+    '"',
+    "+",
+    "的",
+    "了",
+    "和",
+    "是",
+    "也",
+    "都",
+    "很",
+    "就",
+    "在",
+}
+
+SYMBOL_PATTERN = re.compile(r"^[\W_]+$")
+FALLBACK_TOKENIZER_WARNED = False
 
 
-def data_preprocess(df, col):
-    chinese_stopwords = nltk.corpus.stopwords.words('chinese')
-    lemma = WordNetLemmatizer()
+def load_stopwords(stopwords_path=None):
+    stopwords = set(DEFAULT_STOPWORDS)
+    if not stopwords_path:
+        return stopwords
 
-    length = df.shape[0]
-    data_without_stopwords = []
+    path = Path(stopwords_path)
+    if not path.exists():
+        return stopwords
 
-    # Loop through each review
-    for i in range(0, length):
-        reviews = df.iloc[i][col]  # extract reviews
-        doc = jieba.lcut(reviews.strip())  # Split the Chinese words
-
-        doc = [lemma.lemmatize(word) for word in doc if not word in set(chinese_stopwords)]
-        # remove special characterists
-        special_symbols = ['，', '！', '。', '？', 'h', '+', ' ', '、', '?', '…', '：', ')', '⊙', 'o', '⊙', '(',
-                           '!', ':', '', '...', "'"]
-        doc = [value for value in doc if not value in set(special_symbols)]
-
-        data_without_stopwords.append(doc)
-
-    df['cleaned reviews'] = data_without_stopwords
-    # TF_IDF(data_without_stopwords, n=100)
-
-    # data_without_stopwords = [item for t in data_without_stopwords for item in t]
-    # print(data_without_stopwords)
-    # data_without_stopwords = remove_duplicates(data_without_stopwords)
-
-    return df, data_without_stopwords
+    with path.open("r", encoding="utf-8") as file:
+        for line in file:
+            value = line.strip()
+            if value:
+                stopwords.add(value)
+    return stopwords
 
 
-def word_count(word_lists):
+def normalize_text(text):
+    if text is None or (isinstance(text, float) and pd.isna(text)):
+        return ""
+    value = str(text)
+    value = re.sub(r"\s+", " ", value)
+    return value.strip()
+
+
+def tokenize_chinese_text(text, stopwords):
+    global FALLBACK_TOKENIZER_WARNED
+
+    if jieba is not None:
+        raw_tokens = jieba.lcut(text)
+    else:
+        # Fallback tokenizer when jieba is unavailable:
+        # keep CJK characters as single tokens and keep alphanumeric chunks.
+        raw_tokens = re.findall(r"[\u4e00-\u9fff]|[a-zA-Z0-9]+", text)
+        if not FALLBACK_TOKENIZER_WARNED:
+            print("Warning: `jieba` is not installed. Using fallback tokenizer; install `jieba` for better tokenization.")
+            FALLBACK_TOKENIZER_WARNED = True
+
+    tokens = []
+    for token in raw_tokens:
+        token = token.strip()
+        if not token:
+            continue
+        lower_token = token.lower()
+        if lower_token in stopwords or token in stopwords:
+            continue
+        if SYMBOL_PATTERN.fullmatch(token):
+            continue
+        tokens.append(lower_token)
+    return tokens
+
+
+def data_preprocess(df, col, stopwords_path=None):
+    if col not in df.columns:
+        raise KeyError(f"Column '{col}' is missing from input dataframe.")
+
+    stopwords = load_stopwords(stopwords_path)
+    processed_df = df.copy()
+    tokenized_reviews = []
+    normalized_reviews = []
+
+    for review in processed_df[col].fillna(""):
+        normalized = normalize_text(review)
+        tokens = tokenize_chinese_text(normalized, stopwords)
+        normalized_reviews.append(" ".join(tokens))
+        tokenized_reviews.append(tokens)
+
+    processed_df["cleaned reviews"] = tokenized_reviews
+    processed_df["normalized_text"] = normalized_reviews
+    processed_df["token_count"] = [len(tokens) for tokens in tokenized_reviews]
+
+    return processed_df, tokenized_reviews
+
+
+def word_count(word_lists, output_path="output/analysis/word_frequency.txt"):
     results = map_reduce(word_lists)
-    # count the word frequency
-    # export it to txt file
-    with open('../word_frequency.txt', 'w') as f:
-        # f.write(json.dumps(results))
-        for key, value in results.items():
-            f.write('%s:%s\n' % (key, value))
+    output_file = Path(output_path)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_file.open("w", encoding="utf-8") as file:
+        for key, value in sorted(results.items(), key=lambda item: item[1], reverse=True):
+            file.write(f"{key}:{value}\n")
 
 
 def mapper(words):
@@ -63,23 +146,20 @@ def reducer(word_freq_list):
 
 
 def map_reduce(words_list):
-    pool = Pool(processes=4)
-    mapped = pool.map(mapper, words_list)
-    reduced = reducer(mapped)
-    return reduced
+    if not words_list:
+        return defaultdict(int)
+
+    process_count = min(4, max(1, cpu_count() - 1))
+    with Pool(processes=process_count) as pool:
+        mapped = pool.map(mapper, words_list)
+    return reducer(mapped)
 
 
 def english_word_removal(doc):
-    doc = re.sub('[^a-zA-Z]', ' ', doc)
+    doc = re.sub("[^a-zA-Z]", " ", doc)
     doc = doc.lower()
-    doc = doc.split()
-    print(doc)
+    return doc.split()
 
 
 def remove_duplicates(words_list):
-    temp = []
-    for x in words_list:
-        if x not in temp:
-            temp.append(x)
-
-    return temp
+    return list(dict.fromkeys(words_list))

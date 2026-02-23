@@ -3,7 +3,6 @@ import multiprocessing
 from gensim.models import Phrases
 from gensim.models import Word2Vec
 
-
 # Word2Vec -- Skil-grams & Continuous-bag-of-words.
 def word2vec_gensim(words_list):
     bigram_transformer = Phrases(words_list)

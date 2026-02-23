@@ -1,0 +1,29 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.DS_Store
+
+# Generated artifacts
+output/analysis/
+output/model_evaluation/
+output/models/
+*.joblib
+*.keras
+*.sav
+*.model
+
+# Local exports
+words.txt
+test.csv
+result.csv
+corpus.txt
+word_frequency.txt
